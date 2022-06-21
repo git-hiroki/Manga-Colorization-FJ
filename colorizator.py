@@ -5,7 +5,6 @@ import os
 from networks.models import Colorizer
 from denoising.denoiser import FFDNetDenoiser
 from utils.utils import resize_pad
-from ptflops import get_model_complexity_info
 import cv2
 import matplotlib.pyplot as plt
 import math
