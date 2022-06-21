@@ -5,6 +5,8 @@
 ## <div align="center"><b><a href="README.md">English</a> | <a href="README_CN.md">简体中文</a></b></div>
 An amazing manga colorization project  |  漫画AI上色
 
+You can try it in [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1TW21OE4jbDkTiHpkPvBsazsCFnsNyAo0?usp=sharing)
+
 If Manga-Colorization-FJ is helpful, please help to ⭐ this repo or recommend it to your friends 😊 <br>
 # New features
 
