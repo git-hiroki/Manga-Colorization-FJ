@@ -17,6 +17,7 @@ You can try it in [![Open In Colab](https://colab.research.google.com/assets/col
 - [x] 添加超分辨率 Real-ESRGAN（支持 分块）默认输出75 webp减少体积。
 - [x] 单独的上色、超分辨率等模式。
 - [x] 支持中文文件夹 
+- [x] 支持子文件夹模式 
 
 # 自动着色
 
@@ -46,6 +47,10 @@ $ python inference.py -ca
 仅上色模式(无放大):
 ```
 $ python inference.py -nosr
+```
+子文件夹模式(处理输入路径（包括子文件夹下）的所有文件):
+```
+$ python inference.py -sub
 ```
 4.彩色图像保存到“./output/”
 
@@ -81,6 +86,7 @@ optional arguments:
                         aftercolored
   -ca, --color_all      colorall images, no skip color one
   -onlysr, --only_sr    only SR all images, no color
+  -sub, --all_subdir    handle all input sub folders
 ```
 
 # 结果示例
