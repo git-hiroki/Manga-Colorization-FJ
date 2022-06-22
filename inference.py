@@ -44,9 +44,10 @@ def colorize_single_image(image_path, save_path, colorizator, args):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()        
         if args.superr:
-            cv2.imwrite(save_path, colorization,[int(cv2.IMWRITE_WEBP_QUALITY),75])
+            #cv2.imwrite(save_path, colorization,[int(cv2.IMWRITE_WEBP_QUALITY),75])
+	    cv2.imencode('.webp', colorization,[int(cv2.IMWRITE_WEBP_QUALITY),75])[1].tofile(save_path)
         else:
-            plt.imsave(save_path, colorization,[int(cv2.IMWRITE_WEBP_QUALITY),100])
+            plt.imsave(save_path, colorization)
         #
         return True
     
