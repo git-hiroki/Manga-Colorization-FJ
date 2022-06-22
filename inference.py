@@ -77,16 +77,16 @@ def colorize_images(target_path, colorizator, args):
                     if is_grayscale(file_path):
                         iscolor=0
                         #continue
-                        #print("gray img!: "+str(file_path))
+                        print("Gray img!: "+str(file_path))
                         #continue
                     else:
                         iscolor=1
                         if args.superr == False:
                             plt.imsave(save_path,plt.imread(file_path))
-                            print("color img!: "+str(file_path)+"  COPY!")
+                            print("Color img!: "+str(file_path)+" | COPY!")
                             continue
                         else:
-                            print("color img!: "+str(file_path)+"  SR!")
+                            print("Color img!: "+str(file_path)+" | SR!")
                             pass
                 else:
                     iscolor=0
@@ -95,7 +95,7 @@ def colorize_images(target_path, colorizator, args):
             name, ext = os.path.splitext(image_name)
             image_name = name + '.webp'
             save_path = os.path.join(target_path, image_name)
-            print(file_path)
+            #print(file_path)
                     
             colorize_single_image(file_path, save_path, colorizator, args, iscolor)
     
@@ -116,12 +116,14 @@ def parse_args():
     parser.add_argument('-nosr', '--no_superr', dest = 'superr', action = 'store_false', help='SR or not SR by RealESRGAN_x4plus_anime_6B aftercolored')
     parser.add_argument('-ca', '--color_all', dest = 'colorall', action = 'store_true', help= "colorall images, no skip color one")
     parser.add_argument('-onlysr', '--only_sr', dest = 'onlysr', action = 'store_true', help= "only SR all images, no color")
+    parser.add_argument('-sub', '--all_subdir', dest = 'subdir', action = 'store_true', help= "handle all input sub folders")
     # https://github.com/xinntao/Real-ESRGAN/
     parser.set_defaults(gpu = False)
     parser.set_defaults(superr = True)
     parser.set_defaults(denoiser = True)
     parser.set_defaults(colorall = False)
     parser.set_defaults(onlysr = False)
+    parser.set_defaults(subdir = False)
     args = parser.parse_args()
     return args
 
@@ -136,27 +138,62 @@ if __name__ == "__main__":
         device = 'cpu'#"cpu"
         
     colorizer = MangaColorizator(device, args.generator, args.extractor, args.surperpath, args.superr, args.colortile, args.srtile, args.tile_pad)
-    
-    if os.path.isdir(args.path):
-        #colorization_path = os.path.join(args.outputpath, 'colorization')
-        colorization_path = args.outputpath
-        if not os.path.exists(colorization_path):
-            os.makedirs(colorization_path)              
-        colorize_images(colorization_path, colorizer, args)
-        
-    elif os.path.isfile(args.path):
-        
-        split = os.path.splitext(args.path)
+    if args.subdir == False:
+        if os.path.isdir(args.path):
+            #colorization_path = os.path.join(args.outputpath, 'colorization')
+            colorization_path = args.outputpath
+            if not os.path.exists(colorization_path):
+                os.makedirs(colorization_path)              
+            colorize_images(colorization_path, colorizer, args)
+            
+        elif os.path.isfile(args.path):
+            
+            split = os.path.splitext(args.path)
 
-        if split[1].lower() in ('.jpg', '.png', '.jpeg', '.webp'):
-            new_image_path = args.outputpath+'/'+os.path.basename(split[0]) + '.webp'
-            if args.onlysr:
-                iscolor=1
+            if split[1].lower() in ('.jpg', '.png', '.jpeg', '.webp'):
+                new_image_path = args.outputpath+'/'+os.path.basename(split[0]) + '.webp'
+                if args.onlysr:
+                    iscolor=1
+                else:
+                    iscolor=0
+                colorize_single_image(args.path, new_image_path, colorizer, args, iscolor)
             else:
-                iscolor=0
-            colorize_single_image(args.path, new_image_path, colorizer, args, iscolor)
+                print('Wrong format, pass')
         else:
-            print('Wrong format, pass')
-    else:
-        print('Wrong path')
-    
+            print('Wrong path')
+    else: 
+        for root, dirs, files in os.walk(args.path):
+            for filename in files:
+                if filename.endswith(".jpg") or filename.endswith(".JPG")\
+                or filename.endswith(".jepg") or filename.endswith(".JEPG")\
+                or filename.endswith(".png") or filename.endswith(".PNG")\
+                or filename.endswith(".webp") or filename.endswith(".WEBP"):
+                    name = os.path.splitext(os.path.basename(filename))[0]
+                    imgpath = root+'/'+filename
+                    outpath=imgpath.replace(args.path,args.outputpath)
+                    new_image_path = outpath.replace(os.path.splitext(os.path.basename(filename))[1],".webp")
+                    if os.path.isdir(os.path.dirname(new_image_path)):
+                        pass
+                    else:
+                        os.mkdir(os.path.dirname(new_image_path))
+                    if args.onlysr==False:
+                        if args.colorall==False:
+                            if is_grayscale(imgpath):
+                                iscolor=0
+                                print("Gray img!: "+str(imgpath))
+                            else:
+                                iscolor=1
+                                if args.superr == False:
+                                    plt.imsave(save_path,plt.imread(imgpath))
+                                    print("Color img!: "+str(imgpath)+" | COPY!")
+                                    continue
+                                else:
+                                    print("Color img!: "+str(imgpath)+" | SR!")
+                                    pass
+                        else:
+                            iscolor=0
+                    else:
+                        iscolor=1
+                    colorize_single_image(imgpath, new_image_path, colorizer, args, iscolor)
+
+                  

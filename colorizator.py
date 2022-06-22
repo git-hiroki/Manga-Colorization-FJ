@@ -115,7 +115,7 @@ class MangaColorizator:
 
     def colorize(self,iscolor):
         with torch.no_grad():
-            print("iscolor:" +str(iscolor))
+            #print("iscolor:" +str(iscolor))
             if iscolor == 0:
                 # h=torch.cat([self.current_image, self.current_hint], 1)
                 # macs, params = get_model_complexity_info(self.colorizer, (5,896,576), as_strings=True,print_per_layer_stat=True, verbose=True)
@@ -135,7 +135,7 @@ class MangaColorizator:
                     color_result = color_result[:-self.current_pad[0]]
                 if self.current_pad[1] != 0:
                     color_result = color_result[:, :-self.current_pad[1]]
-                print("Colored!")
+                #print("Colored!")
                 # plt.imsave("1.png", color_result.cpu().numpy())   
                 # color_img=cv2.imread("1.png")
                 # img = torch.from_numpy(np.transpose(color_img, (2, 0, 1))).float()
