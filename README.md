@@ -16,6 +16,7 @@ If Manga-Colorization-FJ is helpful, please help to ⭐ this repo or recommend i
 - [x] Add Real-ESRGAN (support tile) for output super-resolution.
 - [x] Support only SR mode; only Color mode; all Color mode.
 - [x] Support Chinese path. 
+- [x] Support Sub-folder mode.
 
 # Automatic colorization
 
@@ -46,7 +47,10 @@ No SR mode(only color):
 ```
 $ python inference.py -nosr
 ```
-
+Sub-dir mode(handle all sub dir):
+```
+$ python inference.py -sub
+```
 4. Colorized image saved to "./output/"
 
 ---
@@ -81,6 +85,7 @@ optional arguments:
                         aftercolored
   -ca, --color_all      colorall images, no skip color one
   -onlysr, --only_sr    only SR all images, no color
+  -sub, --all_subdir    handle all input sub folders
 ```
 
 # Samples
