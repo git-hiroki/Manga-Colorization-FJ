@@ -11,7 +11,7 @@ You can try it in [![Open In Colab](https://colab.research.google.com/assets/col
 
 # 新的功能
 
-- [x] 自动跳过彩色图片 将彩色图片复制到到输出文件夹。
+- [x] 自动跳过彩色图片 将彩色图片复制到(或放大到)输出文件夹。
 - [x] 将原版提供的“zipfile”权重替换为旧的“pt”格式以支持 pytorch 版本 >=1.0
 - [x] 为小显存 GPU 添加图片分块 选项。
 - [x] 添加超分辨率 Real-ESRGAN（支持 分块）默认输出75 webp减少体积。
