@@ -14,6 +14,8 @@ If Manga-Colorization-FJ is helpful, please help to ⭐ this repo or recommend i
 - [x] Replace the offered "zipfile" weight to old "pt" format to support pytorch version >=1.0
 - [x] Add tile img option for small cuda memory gpu.
 - [x] Add Real-ESRGAN (support tile) for output super-resolution.
+- [x] Support only SR mode; only Color mode; all Color mode.
+- [x] Support Chinese path. 
 
 # Automatic colorization
 
@@ -32,6 +34,19 @@ USE GPU:
 ```
 $ python inference.py -g
 ```
+Only SR mode(no color):
+```
+$ python inference.py -onlysr
+```
+Color all mode(no skip color one):
+```
+$ python inference.py -ca
+```
+No SR mode(only color):
+```
+$ python inference.py -nosr
+```
+
 4. Colorized image saved to "./output/"
 
 ---
@@ -42,7 +57,7 @@ $ python inference.py -g
 usage: inference.py [-h] [-p PATH] [-op OUTPUTPATH] [-gen GENERATOR]
                     [-sur SURPERPATH] [-ext EXTRACTOR] [-g] [-nd]
                     [-ds DENOISER_SIGMA] [-s SIZE] [-ct COLORTILE]
-                    [-st SRTILE] [--tile_pad TILE_PAD] [-sr]
+                    [-st SRTILE] [--tile_pad TILE_PAD] [-nosr] [-ca] [-onlysr]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -62,8 +77,10 @@ optional arguments:
   -st SRTILE, --srtile SRTILE
                         SR Tile size, 0 for no tile
   --tile_pad TILE_PAD   Tile padding
-  -sr, --superr         SR or not SR by RealESRGAN_x4plus_anime_6B
+  -nosr, --no_superr    SR or not SR by RealESRGAN_x4plus_anime_6B
                         aftercolored
+  -ca, --color_all      colorall images, no skip color one
+  -onlysr, --only_sr    only SR all images, no color
 ```
 
 # Samples
