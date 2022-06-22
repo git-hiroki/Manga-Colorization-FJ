@@ -28,24 +28,34 @@ def is_grayscale(path):
     else:
         return False
 		
-def process_image(image, colorizator, args):
+def process_image(image, colorizator, args, iscolor):
     colorizator.set_image(image, args.size, args.denoiser, args.denoiser_sigma)
         
-    return colorizator.colorize()
+    return colorizator.colorize(iscolor=iscolor)
     
-def colorize_single_image(image_path, save_path, colorizator, args):
+def colorize_single_image(image_path, save_path, colorizator, args, iscolor):
     
-        image = plt.imread(image_path)
+        #image = plt.imread(image_path)
+
+        image=cv2.imdecode(np.fromfile(image_path,dtype=np.uint8),-1)
+        if image.ndim == 3 and iscolor == 0:
+            if image.shape[2] == 4:
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+            else:
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        ## imdecode读取的是rgb，如果后续需要opencv处理的话，需要转换成bgr，转换后图片颜色会变化
+        ##cv_img=cv2.cvtColor(cv_img,cv2.COLOR_RGB2BGR)
+        #image = cv2.imread(image_path)
         # cv2.imshow("lena", image )
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
-        colorization = process_image(image, colorizator, args)
+        colorization = process_image(image, colorizator, args, iscolor)
         # cv2.imshow("lena", colorization )
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()        
         if args.superr:
             #cv2.imwrite(save_path, colorization,[int(cv2.IMWRITE_WEBP_QUALITY),75])
-	    cv2.imencode('.webp', colorization,[int(cv2.IMWRITE_WEBP_QUALITY),75])[1].tofile(save_path)
+            cv2.imencode('.webp', colorization,[int(cv2.IMWRITE_WEBP_QUALITY),75])[1].tofile(save_path)
         else:
             plt.imsave(save_path, colorization)
         #
@@ -57,24 +67,37 @@ def colorize_images(target_path, colorizator, args):
     
     for image_name in images:
         if os.path.splitext(image_name)[1].lower() in ('.jpg', '.png', '.jpeg', '.webp'):
+            
             file_path = os.path.join(args.path, image_name)
             save_path = os.path.join(target_path, image_name)
             if os.path.isdir(file_path):
                 continue
-            if is_grayscale(file_path):
-                #continue
-                #print("gray img!: "+str(img_path))
-                pass
+            if args.onlysr==False:
+                if args.colorall==False:
+                    if is_grayscale(file_path):
+                        iscolor=0
+                        #continue
+                        #print("gray img!: "+str(file_path))
+                        #continue
+                    else:
+                        iscolor=1
+                        if args.superr == False:
+                            plt.imsave(save_path,plt.imread(file_path))
+                            print("color img!: "+str(file_path)+"  COPY!")
+                            continue
+                        else:
+                            print("color img!: "+str(file_path)+"  SR!")
+                            pass
+                else:
+                    iscolor=0
             else:
-                plt.imsave(save_path,plt.imread(file_path))
-                print("color img!: "+str(file_path)+"  COPY!")
-                continue			
+                iscolor=1
             name, ext = os.path.splitext(image_name)
             image_name = name + '.webp'
             save_path = os.path.join(target_path, image_name)
             print(file_path)
                     
-            colorize_single_image(file_path, save_path, colorizator, args)
+            colorize_single_image(file_path, save_path, colorizator, args, iscolor)
     
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -90,11 +113,15 @@ def parse_args():
     parser.add_argument('-ct', '--colortile', type=int, default=0, help='Color Tile size, 0 for no tile')
     parser.add_argument('-st', '--srtile', type=int, default=256, help='SR Tile size, 0 for no tile')
     parser.add_argument('--tile_pad', type=int, default=8, help='Tile padding')
-    parser.add_argument('-sr', '--superr', dest = 'superr', action = 'store_true', help='SR or not SR by RealESRGAN_x4plus_anime_6B aftercolored')
+    parser.add_argument('-nosr', '--no_superr', dest = 'superr', action = 'store_false', help='SR or not SR by RealESRGAN_x4plus_anime_6B aftercolored')
+    parser.add_argument('-ca', '--color_all', dest = 'colorall', action = 'store_true', help= "colorall images, no skip color one")
+    parser.add_argument('-onlysr', '--only_sr', dest = 'onlysr', action = 'store_true', help= "only SR all images, no color")
     # https://github.com/xinntao/Real-ESRGAN/
     parser.set_defaults(gpu = False)
     parser.set_defaults(superr = True)
     parser.set_defaults(denoiser = True)
+    parser.set_defaults(colorall = False)
+    parser.set_defaults(onlysr = False)
     args = parser.parse_args()
     return args
 
@@ -120,10 +147,14 @@ if __name__ == "__main__":
     elif os.path.isfile(args.path):
         
         split = os.path.splitext(args.path)
-        
+
         if split[1].lower() in ('.jpg', '.png', '.jpeg', '.webp'):
-            new_image_path = split[0] + '_colorized' + '.webp'
-            colorize_single_image(args.path, new_image_path, colorizer, args)
+            new_image_path = args.outputpath+'/'+os.path.basename(split[0]) + '.webp'
+            if args.onlysr:
+                iscolor=1
+            else:
+                iscolor=0
+            colorize_single_image(args.path, new_image_path, colorizer, args, iscolor)
         else:
             print('Wrong format, pass')
     else:

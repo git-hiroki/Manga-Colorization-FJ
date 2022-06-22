@@ -5,11 +5,12 @@ import os
 from networks.models import Colorizer
 from denoising.denoiser import FFDNetDenoiser
 from utils.utils import resize_pad
+from ptflops import get_model_complexity_info
 import cv2
 import matplotlib.pyplot as plt
 import math
 from networks.RRDBNet import RRDBNet
-
+from torch.nn import functional as F
 # import coremltools as ct
 
 class MangaColorizator:
@@ -18,6 +19,7 @@ class MangaColorizator:
         self.color_tile_size = color_tile
         self.sr_tile_size = sr_tile
         self.tile_pad = tile_pad
+        self.device=device
         self.surper_path = surperpath
         self.colorizer = Colorizer().to(device)
         m=torch.load(generator_path, map_location = device)
@@ -61,17 +63,38 @@ class MangaColorizator:
         self.current_pad = None
         
         self.device = device
+    def post_process(self,output):
+        # remove extra pad
+        if self.mod_scale is not None:
+            _, _, h, w = output.size()
+            output = output[:, :, 0:h - self.mod_pad_h * 4, 0:w - self.mod_pad_w * 4]
+        return output
+    def pre_process(self, img):
+        """Pre-process, such as pre-pad and mod pad, so that the images can be divisible
+        """
+        img = torch.from_numpy(np.transpose(img, (2, 0, 1))).float()
+        self.oriimage = img.unsqueeze(0).to(self.device)
+
+        self.mod_scale = 4
+        if self.mod_scale is not None:
+            self.mod_pad_h, self.mod_pad_w = 0, 0
+            _, _, h, w = self.oriimage.size()
+            if (h % self.mod_scale != 0):
+                self.mod_pad_h = (self.mod_scale - h % self.mod_scale)
+            if (w % self.mod_scale != 0):
+                self.mod_pad_w = (self.mod_scale - w % self.mod_scale)
+            self.oriimage = F.pad(self.oriimage, (0, self.mod_pad_w, 0, self.mod_pad_h), 'reflect')
         
     def set_image(self, image, size = 576, apply_denoise = True, denoise_sigma = 25, transform = ToTensor()):
         if (size % 32 != 0):
             raise RuntimeError("size is not divisible by 32")
-
+        self.oriimage=image
         if apply_denoise:
-            image = self.denoiser.get_denoised_image(image, sigma = denoise_sigma)
+            dnimage = self.denoiser.get_denoised_image(image, sigma = denoise_sigma)
         #im=image[:, :, :1]
         #im=im.reshape((1,1200, 779))
-        image, self.current_pad = resize_pad(image, size)
-        self.current_image = transform(image).unsqueeze(0).to(self.device)
+        dnimage, self.current_pad = resize_pad(dnimage, size)
+        self.current_image = transform(dnimage).unsqueeze(0).to(self.device)
         self.current_hint = torch.zeros(1, 4, self.current_image.shape[2], self.current_image.shape[3]).float().to(self.device)
     
     def update_hint(self, hint, mask):
@@ -90,45 +113,106 @@ class MangaColorizator:
 
         self.current_hint = torch.cat([hint * mask, mask], 0).unsqueeze(0).to(self.device)
 
-    def colorize(self):
+    def colorize(self,iscolor):
         with torch.no_grad():
-            # h=torch.cat([self.current_image, self.current_hint], 1)
-            # macs, params = get_model_complexity_info(self.colorizer, (5,896,576), as_strings=True,print_per_layer_stat=True, verbose=True)
-            # print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
-            # print('{:<30}  {:<8}'.format('Number of parameters: ', params))		
-            self.img=torch.cat([self.current_image, self.current_hint], 1)
-            #self.tile_size=0
+            print("iscolor:" +str(iscolor))
+            if iscolor == 0:
+                # h=torch.cat([self.current_image, self.current_hint], 1)
+                # macs, params = get_model_complexity_info(self.colorizer, (5,896,576), as_strings=True,print_per_layer_stat=True, verbose=True)
+                # print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+                # print('{:<30}  {:<8}'.format('Number of parameters: ', params))		
+                self.img=torch.cat([self.current_image, self.current_hint], 1)
+                #self.tile_size=0
 
-            #tile for color
-            #tile for sr
-
-            if self.color_tile_size > 0:
-                fake_color1=self.tile_process(self.img, color_or_sr="color")
-            else:
-                fake_color1, _ = self.colorizer(self.img)
-            color_result = fake_color1[0].detach().permute(1, 2, 0) * 0.5 + 0.5
-            if self.current_pad[0] != 0:
-                color_result = color_result[:-self.current_pad[0]]
-            if self.current_pad[1] != 0:
-                color_result = color_result[:, :-self.current_pad[1]]    
-            # plt.imsave("1.png", color_result.cpu().numpy())   
-            # color_img=cv2.imread("1.png")
-            # img = torch.from_numpy(np.transpose(color_img, (2, 0, 1))).float()
-            # color_result = img.unsqueeze(0).cuda()
-
-            if self.superr:
-                color_result=color_result.permute(2, 0, 1)
-                color_result=color_result.unsqueeze(0)
-                if self.sr_tile_size > 0:
-                    srresult = self.tile_process(color_result.detach() , color_or_sr="sr")
+                #tile for color
+                #tile for sr
+                if self.color_tile_size > 0:
+                    fake_color1=self.tile_process(self.img, color_or_sr="color")
                 else:
-                    srresult = self.srmodel(color_result.detach())
-                output_img = srresult.data.squeeze().float().cpu().clamp_(0, 1).numpy()
+                    fake_color1, _ = self.colorizer(self.img)
+                color_result = fake_color1[0].detach().permute(1, 2, 0) * 0.5 + 0.5
+                if self.current_pad[0] != 0:
+                    color_result = color_result[:-self.current_pad[0]]
+                if self.current_pad[1] != 0:
+                    color_result = color_result[:, :-self.current_pad[1]]
+                print("Colored!")
+                # plt.imsave("1.png", color_result.cpu().numpy())   
+                # color_img=cv2.imread("1.png")
+                # img = torch.from_numpy(np.transpose(color_img, (2, 0, 1))).float()
+                # color_result = img.unsqueeze(0).cuda()
+
+                if self.superr:
+                    color_result=color_result.permute(2, 0, 1)
+                    color_result=color_result.unsqueeze(0)
+                    if self.sr_tile_size > 0:
+                        srresult = self.tile_process(color_result.detach() , color_or_sr="sr")
+                    else:
+                        srresult = self.srmodel(color_result.detach())
+                    output_img = srresult.data.squeeze().float().cpu().clamp_(0, 1).numpy()
+                    output_img = np.transpose(output_img[[2, 1, 0], :, :], (1, 2, 0))
+                    result = (output_img * 255.0).round().astype(np.uint8)
+                else: 
+                    result = (color_result.detach().cpu().numpy()*255.0).round().astype(np.uint8)
+            if iscolor ==1:
+                img=self.oriimage
+                h_input, w_input = img.shape[0:2]
+                # img: numpy
+                img = img.astype(np.float32)
+                if np.max(img) > 256:  # 16-bit image
+                    max_range = 65535
+                    print('\tInput is a 16-bit image')
+                else:
+                    max_range = 255
+                img = img / max_range
+                if len(img.shape) == 2:  # gray image
+                    img_mode = 'L'
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+                elif img.shape[2] == 4:  # RGBA image with alpha channel
+                    img_mode = 'RGBA'
+                    alpha = img[:, :, 3]
+                    img = img[:, :, 0:3]
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                else:
+                    img_mode = 'RGB'
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+                self.pre_process(img)
+                
+                tmp_result=self.oriimage
+                if self.sr_tile_size > 0:
+                    srresult = self.tile_process(tmp_result.detach() , color_or_sr="sr")
+                else:
+                    srresult = self.srmodel(tmp_result.detach())    
+                output_img = self.post_process(srresult)
+                output_img = output_img.data.squeeze().float().cpu().clamp_(0, 1).numpy()
                 output_img = np.transpose(output_img[[2, 1, 0], :, :], (1, 2, 0))
-                result = (output_img * 255.0).round().astype(np.uint8)
-            else: 
-                result = (color_result.detach().cpu().numpy()*255.0).round().astype(np.uint8)
-            
+                if img_mode == 'L':
+                    output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2GRAY)
+                # ------------------- process the alpha channel if necessary ------------------- #
+                if img_mode == 'RGBA':
+                    h, w = alpha.shape[0:2]
+                    output_alpha = cv2.resize(alpha, (w * 4, h * 4), interpolation=cv2.INTER_LINEAR)
+                    # merge the alpha channel
+                    output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2BGRA)
+                    output_img[:, :, 3] = output_alpha
+
+                # ------------------------------ return ------------------------------ #
+                if max_range == 65535:  # 16-bit image
+                    output = (output_img * 65535.0).round().astype(np.uint16)
+                else:
+                    output = (output_img * 255.0).round().astype(np.uint8)
+
+                result=output
+                #return output, img_mode                
+                # if self.oriimage.shape[2] == 4:
+                #     alpha=self.oriimage[:, :, 3]
+                #     h, w = alpha.shape[0:2]
+                #     output_alpha = cv2.resize(alpha, (w * 4, h * 4), interpolation=cv2.INTER_LINEAR)
+                #     # merge the alpha channel
+                #     result = cv2.cvtColor(output_img, cv2.COLOR_BGR2BGRA)
+                #     result[:, :, 3] = output_alpha     
+                # else:
+                #     result=output_img                                     
         return result
 
     def tile_process(self,img,color_or_sr):
