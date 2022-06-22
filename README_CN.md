@@ -15,6 +15,8 @@ You can try it in [![Open In Colab](https://colab.research.google.com/assets/col
 - [x] 将原版提供的“zipfile”权重替换为旧的“pt”格式以支持 pytorch 版本 >=1.0
 - [x] 为小显存 GPU 添加图片分块 选项。
 - [x] 添加超分辨率 Real-ESRGAN（支持 分块）默认输出75 webp减少体积。
+- [x] 单独的上色、超分辨率等模式。
+- [x] 支持中文文件夹 
 
 # 自动着色
 
@@ -33,17 +35,29 @@ $ python inference.py
 ```
 $ python inference.py -g
 ```
+仅放大模式(无上色):
+```
+$ python inference.py -onlysr
+```
+强制上色模式(全上色不自动跳过判断原图为彩色的):
+```
+$ python inference.py -ca
+```
+仅上色模式(无放大):
+```
+$ python inference.py -nosr
+```
 4.彩色图像保存到“./output/”
 
 ---
 
-####其它options
+# 其它options
 
 ```
 usage: inference.py [-h] [-p PATH] [-op OUTPUTPATH] [-gen GENERATOR]
                     [-sur SURPERPATH] [-ext EXTRACTOR] [-g] [-nd]
                     [-ds DENOISER_SIGMA] [-s SIZE] [-ct COLORTILE]
-                    [-st SRTILE] [--tile_pad TILE_PAD] [-sr]
+                    [-st SRTILE] [--tile_pad TILE_PAD] [-nosr] [-ca] [-onlysr]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -63,8 +77,10 @@ optional arguments:
   -st SRTILE, --srtile SRTILE
                         SR Tile size, 0 for no tile
   --tile_pad TILE_PAD   Tile padding
-  -sr, --superr         SR or not SR by RealESRGAN_x4plus_anime_6B
+  -nosr, --no_superr    SR or not SR by RealESRGAN_x4plus_anime_6B
                         aftercolored
+  -ca, --color_all      colorall images, no skip color one
+  -onlysr, --only_sr    only SR all images, no color
 ```
 
 # 结果示例
