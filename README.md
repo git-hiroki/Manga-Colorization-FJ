@@ -10,7 +10,7 @@ You can try it in [![Open In Colab](https://colab.research.google.com/assets/col
 If Manga-Colorization-FJ is helpful, please help to ⭐ this repo or recommend it to your friends 😊 <br>
 # New features
 
-- [x] Skip color img just copy to output.
+- [x] Skip color img just copy/sr to output.
 - [x] Replace the offered "zipfile" weight to old "pt" format to support pytorch version >=1.0
 - [x] Add tile img option for small cuda memory gpu.
 - [x] Add Real-ESRGAN (support tile) for output super-resolution.
