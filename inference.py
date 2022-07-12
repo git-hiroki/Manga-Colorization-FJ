@@ -184,7 +184,7 @@ if __name__ == "__main__":
                             else:
                                 iscolor=1
                                 if args.superr == False:
-                                    plt.imsave(save_path,plt.imread(imgpath))
+                                    plt.imsave(new_image_path, plt.imread(imgpath))
                                     print("Color img!: "+str(imgpath)+" | COPY!")
                                     continue
                                 else:
